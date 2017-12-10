@@ -59,7 +59,7 @@ ISR(ADC_vect)
 		}
 		case 0xC2:{//PIR
 			PORTB = theLow;
-			if(PORTB>=0x93) cmpare2|=0x08;
+			if(PORTB<=0x40) cmpare2|=0x08;
 			else cmpare2&=0x00;
 			ADMUX = 0xC0;
 			PORTG =2;
