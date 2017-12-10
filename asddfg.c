@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+
 int x;
 int tmp = 0;
 int PIR = 0;
@@ -16,6 +17,8 @@ int main(void)
 	DDRB=0xff;
 	DDRC=0xff;
 	DDRD=0xff;
+	DDRE=0xff;
+	DDRA=0;
 	sei();
 
 	ADCSRA |= 1<<ADSC;
@@ -64,19 +67,32 @@ ISR(ADC_vect)
 {
 	uint8_t theLow = ADCL;
 	uint16_t theTenBitResult = ADCH<<8 | theLow;
-
-	if(ADMUX == 0xC0)
+	uint8_t cmpare0=0x00;
+	uint8_t cmpare1=0x00;
+	switch(ADMUX)
 	{
+		case 0xC0:{//temp
 			PORTD = theLow;
+			
+			if(PORTD>=0x93) cmpare0|=0x01;
+			else cmpare0&=0x00;
 			ADMUX = 0xC1;
 			PORTG =1;
 			_delay_ms(100);
-	}
-	else{
+		}
+		break;
+		case 0xC1:{//CO2
 			PORTC = theLow;
+			if(PORTC<0x26) cmpare1|=0x05;
+			else cmpare1&=0x00;
 			ADMUX = 0xC0;
 			PORTG =0;
 			_delay_ms(100);
-	}		
+		}
+		break;
+		default : //Code
+		break;
+	}	
+	PORTE=cmpare0|cmpare1;
 	ADCSRA |= 1<<ADSC;
 }
