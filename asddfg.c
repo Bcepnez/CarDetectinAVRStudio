@@ -10,9 +10,10 @@ int count = 0;
 int main(void)
 {
 	ADCSRA |= 1<<ADPS2;
-	ADMUX |= 1<<REFS0 | 1<<REFS1;
+	ADMUX |= 1<<REFS0 | 1<<REFS1|1<<8;
 	ADCSRA |= 1<<ADIE;
 	ADCSRA |= 1<<ADEN;
+	ADCSRA |= 1<<8;
 	DDRG=0xff;
 	DDRB=0xff;
 	DDRC=0xff;
@@ -25,41 +26,7 @@ int main(void)
 
 	while (1)
 	{
-		if(PINA&0x10)
-           {
-                   if(count>0){
-                          PORTE=0x02;
-                          count--;
-                   }
-                   PORTE=0x00;
-                   //count = 0 ;
-           }
-        else{
-                
-                while((ADCSRA&(1<<ADIF))==0);
-				if(PORTD >= 0x95  ){ tmp = 1;  }
-                if(PORTC <= 0x2D ){ CO =1  ;   }
-                if(PINA & 0x02 ){ PIR =1;   }
-                if  (tmp+CO+PIR > 0 && !(PINA&0x10))
-                {
-                    x=0x04;
-                    if(count < 1000) {
-                         x|=0x01;
-                         count++;
-                    }
-                    else {
-                         x&=0x0C;
-                    }
-                    if(PIR && !(PINA&0x10)) x|=0x0C;
-                    else x&=0x07;
-                    PORTE=x;
-                }
-                else
-                {
-                    PORTE = 0x00;
-                }
-           }
-           //PORTC = count;
+		
 	}
 }
 
@@ -69,30 +36,38 @@ ISR(ADC_vect)
 	uint16_t theTenBitResult = ADCH<<8 | theLow;
 	uint8_t cmpare0=0x00;
 	uint8_t cmpare1=0x00;
+	uint8_t cmpare2=0x00;
 	switch(ADMUX)
 	{
 		case 0xC0:{//temp
 			PORTD = theLow;
-			
 			if(PORTD>=0x93) cmpare0|=0x01;
 			else cmpare0&=0x00;
 			ADMUX = 0xC1;
 			PORTG =1;
 			_delay_ms(100);
+			break;
 		}
-		break;
 		case 0xC1:{//CO2
 			PORTC = theLow;
 			if(PORTC<0x26) cmpare1|=0x05;
 			else cmpare1&=0x00;
-			ADMUX = 0xC0;
+			ADMUX = 0xC2;
 			PORTG =0;
 			_delay_ms(100);
+			break;
 		}
-		break;
-		default : //Code
-		break;
+		case 0xC2:{//PIR
+			PORTB = theLow;
+			if(PORTB>=0x93) cmpare2|=0x08;
+			else cmpare2&=0x00;
+			ADMUX = 0xC0;
+			PORTG =2;
+			_delay_ms(100);
+			break;
+		}
+		default : break;
 	}	
-	PORTE=cmpare0|cmpare1;
+	PORTE=cmpare0|cmpare1|cmpare2;
 	ADCSRA |= 1<<ADSC;
 }
